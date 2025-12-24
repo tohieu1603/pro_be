@@ -8,3 +8,6 @@ export * from "./tag.controller";
 export * from "./option-type.controller";
 export * from "./auth.controller";
 export * from "./user.controller";
+export * from "./article-category.controller";
+export * from "./article.controller";
+export * from "./region.controller";

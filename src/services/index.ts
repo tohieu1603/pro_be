@@ -11,3 +11,8 @@ export * from "./promotion.service";
 export * from "./service-info.service";
 export * from "./auth.service";
 export * from "./user.service";
+export * from "./article-category.service";
+export * from "./article.service";
+export * from "./sitemap.service";
+export * from "./region.service";
+export * from "./product-region.service";

@@ -24,3 +24,8 @@ export * from "./tag.entity";
 export * from "./product-relation.entity";
 export * from "./user.entity";
 export * from "./refresh-token.entity";
+export * from "./article-category.entity";
+export * from "./article.entity";
+export * from "./region.entity";
+export * from "./product-region.entity";
+export * from "./article-region.entity";

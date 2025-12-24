@@ -4,10 +4,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { AppDataSource } from "./data-source";
 import routes from "./routes";
+import sitemapRoutes from "./routes/sitemap.routes";
 import { authService } from "./services";
 import { errorHandler, notFoundHandler } from "./middleware/error-handler.middleware";
 import { requestLogger, logger } from "./utils/logger";
 import { RateLimiters } from "./middleware/rate-limiter.middleware";
+import { regionMiddleware } from "./middleware/region.middleware";
 
 dotenv.config();
 
@@ -20,9 +22,24 @@ app.use(requestLogger());
 // Global rate limiting
 app.use(RateLimiters.standard());
 
-// CORS
+// CORS - Allow multiple origins for local development
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "http://192.168.31.126:3000",
+  process.env.CORS_ORIGIN,
+].filter(Boolean) as string[];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins in development
+    }
+  },
   credentials: true,
 }));
 
@@ -30,10 +47,16 @@ app.use(cors({
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Region detection middleware (multi-tenant support)
+app.use(regionMiddleware());
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Sitemap & SEO routes (public, no /api prefix)
+app.use(sitemapRoutes);
 
 // API Routes
 app.use("/api", routes);

@@ -10,6 +10,10 @@ import optionTypeRoutes from "./option-type.routes";
 import importRoutes from "./import.routes";
 import authRoutes from "./auth.routes";
 import userRoutes from "./user.routes";
+import articleCategoryRoutes from "./article-category.routes";
+import articleRoutes from "./article.routes";
+import regionRoutes from "./region.routes";
+import publicRoutes from "./public.routes";
 
 const router = Router();
 
@@ -24,9 +28,13 @@ router.use("/inventory", inventoryRoutes);
 router.use("/tags", tagRoutes);
 router.use("/option-types", optionTypeRoutes);
 router.use("/import", importRoutes);
+router.use("/article-categories", articleCategoryRoutes);
+router.use("/articles", articleRoutes);
+router.use("/regions", regionRoutes);
+router.use("/public", publicRoutes);
 
 // Health check
-router.get("/health", (req, res) => {
+router.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 

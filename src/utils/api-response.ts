@@ -57,3 +57,10 @@ export const sendDeleted = (
 ): Response => {
   return sendSuccess(res, null, message);
 };
+
+export const sendNotFound = (
+  res: Response,
+  resource = "Resource"
+): Response => {
+  return sendError(res, `${resource} not found`, 404);
+};
