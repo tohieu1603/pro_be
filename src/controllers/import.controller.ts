@@ -38,7 +38,7 @@ export class ImportController {
   // Download Excel template
   async downloadTemplate(req: Request, res: Response) {
     try {
-      const buffer = productImportService.generateTemplate();
+      const buffer = await productImportService.generateTemplate();
 
       res.setHeader(
         "Content-Type",
