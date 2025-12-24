@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 
 // Mock all repository methods - must be declared before jest.mock
 const mockFind = jest.fn();
@@ -24,14 +24,23 @@ import { AppDataSource } from "../../data-source";
 // Get mocked AppDataSource
 const mockedAppDataSource = AppDataSource as jest.Mocked<typeof AppDataSource>;
 
-// Helper to create Excel buffer from data
-function createExcelBuffer(sheets: Record<string, any[]>): Buffer {
-  const workbook = XLSX.utils.book_new();
+// Helper to create Excel buffer from data using ExcelJS
+async function createExcelBuffer(sheets: Record<string, any[]>): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
   for (const [name, data] of Object.entries(sheets)) {
-    const sheet = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(workbook, sheet, name);
+    const worksheet = workbook.addWorksheet(name);
+    if (data.length > 0) {
+      // Add headers
+      const headers = Object.keys(data[0]);
+      worksheet.addRow(headers);
+      // Add data rows
+      for (const row of data) {
+        worksheet.addRow(headers.map(h => row[h]));
+      }
+    }
   }
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const arrayBuffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 describe("ProductImportService", () => {
@@ -56,69 +65,96 @@ describe("ProductImportService", () => {
   });
 
   describe("generateTemplate", () => {
-    it("should generate a valid Excel template with all 4 sheets", () => {
-      const buffer = service.generateTemplate();
+    it("should generate a valid Excel template with all 4 sheets", async () => {
+      const buffer = await service.generateTemplate();
 
       expect(buffer).toBeInstanceOf(Buffer);
       expect(buffer.length).toBeGreaterThan(0);
 
       // Parse and verify structure
-      const workbook = XLSX.read(buffer, { type: "buffer" });
-      expect(workbook.SheetNames).toContain("Products");
-      expect(workbook.SheetNames).toContain("Variants");
-      expect(workbook.SheetNames).toContain("Attributes");
-      expect(workbook.SheetNames).toContain("Media");
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+      const sheetNames = workbook.worksheets.map(ws => ws.name);
+      expect(sheetNames).toContain("Products");
+      expect(sheetNames).toContain("Variants");
+      expect(sheetNames).toContain("Attributes");
+      expect(sheetNames).toContain("Media");
     });
 
-    it("should include sample data in Products sheet", () => {
-      const buffer = service.generateTemplate();
-      const workbook = XLSX.read(buffer, { type: "buffer" });
-      const products = XLSX.utils.sheet_to_json(workbook.Sheets["Products"]);
+    it("should include sample data in Products sheet", async () => {
+      const buffer = await service.generateTemplate();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+      const worksheet = workbook.getWorksheet("Products");
 
-      expect(products.length).toBeGreaterThan(0);
-      expect(products[0]).toHaveProperty("name");
-      expect(products[0]).toHaveProperty("sku_prefix");
-      expect(products[0]).toHaveProperty("base_price");
+      // Get headers from first row
+      const headers: string[] = [];
+      worksheet?.getRow(1).eachCell((cell) => {
+        headers.push(String(cell.value || "").toLowerCase().replace(/\s+/g, "_"));
+      });
+
+      expect(worksheet?.rowCount).toBeGreaterThan(1);
+      expect(headers).toContain("name");
+      expect(headers).toContain("sku_prefix");
+      expect(headers).toContain("base_price");
     });
 
-    it("should include sample data in Variants sheet", () => {
-      const buffer = service.generateTemplate();
-      const workbook = XLSX.read(buffer, { type: "buffer" });
-      const variants = XLSX.utils.sheet_to_json(workbook.Sheets["Variants"]);
+    it("should include sample data in Variants sheet", async () => {
+      const buffer = await service.generateTemplate();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+      const worksheet = workbook.getWorksheet("Variants");
 
-      expect(variants.length).toBeGreaterThan(0);
-      expect(variants[0]).toHaveProperty("product_sku_prefix");
-      expect(variants[0]).toHaveProperty("sku");
-      expect(variants[0]).toHaveProperty("price");
+      const headers: string[] = [];
+      worksheet?.getRow(1).eachCell((cell) => {
+        headers.push(String(cell.value || "").toLowerCase().replace(/\s+/g, "_"));
+      });
+
+      expect(worksheet?.rowCount).toBeGreaterThan(1);
+      expect(headers).toContain("product_sku_prefix");
+      expect(headers).toContain("sku");
+      expect(headers).toContain("price");
     });
 
-    it("should include sample data in Attributes sheet", () => {
-      const buffer = service.generateTemplate();
-      const workbook = XLSX.read(buffer, { type: "buffer" });
-      const attributes = XLSX.utils.sheet_to_json(workbook.Sheets["Attributes"]);
+    it("should include sample data in Attributes sheet", async () => {
+      const buffer = await service.generateTemplate();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+      const worksheet = workbook.getWorksheet("Attributes");
 
-      expect(attributes.length).toBeGreaterThan(0);
-      expect(attributes[0]).toHaveProperty("product_sku_prefix");
-      expect(attributes[0]).toHaveProperty("attribute_name");
-      expect(attributes[0]).toHaveProperty("value");
+      const headers: string[] = [];
+      worksheet?.getRow(1).eachCell((cell) => {
+        headers.push(String(cell.value || "").toLowerCase().replace(/\s+/g, "_"));
+      });
+
+      expect(worksheet?.rowCount).toBeGreaterThan(1);
+      expect(headers).toContain("product_sku_prefix");
+      expect(headers).toContain("attribute_name");
+      expect(headers).toContain("value");
     });
 
-    it("should include sample data in Media sheet", () => {
-      const buffer = service.generateTemplate();
-      const workbook = XLSX.read(buffer, { type: "buffer" });
-      const media = XLSX.utils.sheet_to_json(workbook.Sheets["Media"]);
+    it("should include sample data in Media sheet", async () => {
+      const buffer = await service.generateTemplate();
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
+      const worksheet = workbook.getWorksheet("Media");
 
-      expect(media.length).toBeGreaterThan(0);
-      expect(media[0]).toHaveProperty("product_sku_prefix");
-      expect(media[0]).toHaveProperty("url");
-      expect(media[0]).toHaveProperty("type");
+      const headers: string[] = [];
+      worksheet?.getRow(1).eachCell((cell) => {
+        headers.push(String(cell.value || "").toLowerCase().replace(/\s+/g, "_"));
+      });
+
+      expect(worksheet?.rowCount).toBeGreaterThan(1);
+      expect(headers).toContain("product_sku_prefix");
+      expect(headers).toContain("url");
+      expect(headers).toContain("type");
     });
   });
 
   describe("importFromExcel", () => {
     describe("Sheet validation", () => {
       it("should return error when Products sheet is missing", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           WrongSheet: [{ name: "test" }],
         });
 
@@ -129,7 +165,7 @@ describe("ProductImportService", () => {
       });
 
       it("should return error when Products sheet is empty", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [],
         });
 
@@ -140,7 +176,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle missing optional sheets gracefully", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 100000 },
           ],
@@ -155,7 +191,7 @@ describe("ProductImportService", () => {
 
     describe("Product import", () => {
       it("should import a valid product successfully", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -168,7 +204,7 @@ describe("ProductImportService", () => {
       });
 
       it("should reject product without required fields", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product" }, // missing sku_prefix and base_price
           ],
@@ -182,7 +218,7 @@ describe("ProductImportService", () => {
       });
 
       it("should reject product with missing name", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { sku_prefix: "TEST001", base_price: 1000000 }, // missing name
           ],
@@ -197,7 +233,7 @@ describe("ProductImportService", () => {
       it("should reject duplicate SKU prefix", async () => {
         mockRepo.findOne.mockResolvedValueOnce({ id: "existing-id", spk: "TEST001" });
 
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -210,7 +246,7 @@ describe("ProductImportService", () => {
       });
 
       it("should create brand if not exists and add warning", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000, brand_name: "New Brand" },
           ],
@@ -225,7 +261,7 @@ describe("ProductImportService", () => {
       it("should use existing brand from cache", async () => {
         mockRepo.find.mockImplementation(() => [{ id: "brand-1", name: "Existing Brand" }]);
 
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000, brand_name: "Existing Brand" },
           ],
@@ -238,7 +274,7 @@ describe("ProductImportService", () => {
       });
 
       it("should create category if not exists and add warning", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000, category_name: "New Category" },
           ],
@@ -251,7 +287,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle tags properly", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000, tags: "hot,new,sale" },
           ],
@@ -265,7 +301,7 @@ describe("ProductImportService", () => {
       });
 
       it("should import multiple products", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Product 1", sku_prefix: "TEST001", base_price: 1000000 },
             { name: "Product 2", sku_prefix: "TEST002", base_price: 2000000 },
@@ -279,7 +315,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle boolean is_featured field", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000, is_featured: true },
           ],
@@ -293,7 +329,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle string 'true' for is_featured field", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000, is_featured: "true" },
           ],
@@ -319,7 +355,7 @@ describe("ProductImportService", () => {
       });
 
       it("should import variant for existing product", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -335,7 +371,7 @@ describe("ProductImportService", () => {
       });
 
       it("should reject variant without required fields", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -352,7 +388,7 @@ describe("ProductImportService", () => {
 
       it("should reject variant for non-existent product", async () => {
         // Empty Products sheet will fail early, so use a valid product but variant references different prefix
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -375,7 +411,7 @@ describe("ProductImportService", () => {
           return Promise.resolve(null);
         });
 
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -390,7 +426,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle variant options", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -416,7 +452,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle variant image", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -436,7 +472,7 @@ describe("ProductImportService", () => {
       });
 
       it("should import multiple variants", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -464,7 +500,7 @@ describe("ProductImportService", () => {
       });
 
       it("should import attribute for existing product", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -481,7 +517,7 @@ describe("ProductImportService", () => {
       });
 
       it("should add warning for attribute without required fields", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -503,7 +539,7 @@ describe("ProductImportService", () => {
           return Promise.resolve(null);
         });
 
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -530,7 +566,7 @@ describe("ProductImportService", () => {
       });
 
       it("should import media for existing product", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -546,7 +582,7 @@ describe("ProductImportService", () => {
       });
 
       it("should add warning for media without required fields", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -561,7 +597,7 @@ describe("ProductImportService", () => {
       });
 
       it("should handle is_primary flag", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Test Product", sku_prefix: "TEST001", base_price: 1000000 },
           ],
@@ -589,7 +625,7 @@ describe("ProductImportService", () => {
       });
 
       it("should continue processing after individual row errors", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Valid Product", sku_prefix: "TEST001", base_price: 1000000 },
             { name: "Invalid Product" }, // missing required fields
@@ -605,7 +641,7 @@ describe("ProductImportService", () => {
       });
 
       it("should report correct row numbers in errors", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             { name: "Product 1", sku_prefix: "TEST001", base_price: 1000000 },
             { name: "Product 2", sku_prefix: "TEST002", base_price: 2000000 },
@@ -621,7 +657,7 @@ describe("ProductImportService", () => {
 
     describe("Full import flow", () => {
       it("should import complete product with all related data", async () => {
-        const buffer = createExcelBuffer({
+        const buffer = await createExcelBuffer({
           Products: [
             {
               name: "Complete Product",

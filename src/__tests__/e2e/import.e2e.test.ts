@@ -1,6 +1,6 @@
 import request from "supertest";
 import express, { Express } from "express";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import multer from "multer";
 import { ImportController } from "../../controllers/import.controller";
 import { productImportService } from "../../services/product-import.service";
@@ -15,14 +15,23 @@ jest.mock("../../services/product-import.service", () => ({
 
 const mockedImportService = productImportService as jest.Mocked<typeof productImportService>;
 
-// Helper to create Excel buffer
-function createExcelBuffer(sheets: Record<string, any[]>): Buffer {
-  const workbook = XLSX.utils.book_new();
+// Helper to create Excel buffer using ExcelJS
+async function createExcelBuffer(sheets: Record<string, any[]>): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
   for (const [name, data] of Object.entries(sheets)) {
-    const sheet = XLSX.utils.json_to_sheet(data);
-    XLSX.utils.book_append_sheet(workbook, sheet, name);
+    const worksheet = workbook.addWorksheet(name);
+    if (data.length > 0) {
+      // Add headers
+      const headers = Object.keys(data[0]);
+      worksheet.addRow(headers);
+      // Add data rows
+      for (const row of data) {
+        worksheet.addRow(headers.map(h => row[h]));
+      }
+    }
   }
-  return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const arrayBuffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(arrayBuffer);
 }
 
 describe("Import API E2E Tests", () => {
@@ -91,7 +100,7 @@ describe("Import API E2E Tests", () => {
       });
 
       it("should accept .xlsx files", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [{ name: "Test", sku_prefix: "T1", base_price: 100 }],
         });
 
@@ -115,7 +124,7 @@ describe("Import API E2E Tests", () => {
       });
 
       it("should accept .xls files", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [{ name: "Test", sku_prefix: "T1", base_price: 100 }],
         });
 
@@ -141,7 +150,7 @@ describe("Import API E2E Tests", () => {
 
     describe("Successful import", () => {
       it("should return success response with import statistics", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [
             { name: "Product 1", sku_prefix: "P1", base_price: 100000 },
             { name: "Product 2", sku_prefix: "P2", base_price: 200000 },
@@ -177,7 +186,7 @@ describe("Import API E2E Tests", () => {
       });
 
       it("should call importFromExcel with file buffer", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [{ name: "Test", sku_prefix: "T1", base_price: 100 }],
         });
 
@@ -203,7 +212,7 @@ describe("Import API E2E Tests", () => {
 
     describe("Import with errors", () => {
       it("should return errors in response when import has errors", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [{ name: "Test" }], // missing required fields
         });
 
@@ -230,7 +239,7 @@ describe("Import API E2E Tests", () => {
       });
 
       it("should return partial success when some rows fail", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [
             { name: "Valid", sku_prefix: "V1", base_price: 100 },
             { name: "Invalid" }, // missing fields
@@ -261,7 +270,7 @@ describe("Import API E2E Tests", () => {
 
     describe("Error handling", () => {
       it("should return 500 when service throws error", async () => {
-        const excelBuffer = createExcelBuffer({
+        const excelBuffer = await createExcelBuffer({
           Products: [{ name: "Test", sku_prefix: "T1", base_price: 100 }],
         });
 
@@ -285,14 +294,14 @@ describe("Import API E2E Tests", () => {
 
   describe("GET /api/import/template", () => {
     it("should return Excel file with correct content type", async () => {
-      const templateBuffer = createExcelBuffer({
+      const templateBuffer = await createExcelBuffer({
         Products: [{ name: "Sample", sku_prefix: "S1", base_price: 100 }],
         Variants: [],
         Attributes: [],
         Media: [],
       });
 
-      mockedImportService.generateTemplate.mockReturnValue(templateBuffer);
+      mockedImportService.generateTemplate.mockResolvedValue(templateBuffer);
 
       const response = await request(app)
         .get("/api/import/template")
@@ -304,11 +313,11 @@ describe("Import API E2E Tests", () => {
     });
 
     it("should set correct Content-Disposition header", async () => {
-      const templateBuffer = createExcelBuffer({
+      const templateBuffer = await createExcelBuffer({
         Products: [{ name: "Sample", sku_prefix: "S1", base_price: 100 }],
       });
 
-      mockedImportService.generateTemplate.mockReturnValue(templateBuffer);
+      mockedImportService.generateTemplate.mockResolvedValue(templateBuffer);
 
       const response = await request(app)
         .get("/api/import/template")
@@ -319,14 +328,14 @@ describe("Import API E2E Tests", () => {
     });
 
     it("should return valid Excel buffer", async () => {
-      const templateBuffer = createExcelBuffer({
+      const templateBuffer = await createExcelBuffer({
         Products: [{ name: "Sample", sku_prefix: "S1", base_price: 100 }],
         Variants: [],
         Attributes: [],
         Media: [],
       });
 
-      mockedImportService.generateTemplate.mockReturnValue(templateBuffer);
+      mockedImportService.generateTemplate.mockResolvedValue(templateBuffer);
 
       const response = await request(app)
         .get("/api/import/template")
@@ -334,14 +343,15 @@ describe("Import API E2E Tests", () => {
         .expect(200);
 
       // Verify response is a valid Excel file
-      const workbook = XLSX.read(Buffer.from(response.body), { type: "buffer" });
-      expect(workbook.SheetNames.length).toBeGreaterThan(0);
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(response.body as ArrayBuffer);
+      expect(workbook.worksheets.length).toBeGreaterThan(0);
     });
 
     it("should return 500 when template generation fails", async () => {
-      mockedImportService.generateTemplate.mockImplementation(() => {
-        throw new Error("Template generation failed");
-      });
+      mockedImportService.generateTemplate.mockRejectedValue(
+        new Error("Template generation failed")
+      );
 
       const response = await request(app)
         .get("/api/import/template")
@@ -468,7 +478,7 @@ describe("Import Controller Unit Tests", () => {
   describe("downloadTemplate", () => {
     it("should set correct headers", async () => {
       mockReq = {};
-      mockedImportService.generateTemplate.mockReturnValue(Buffer.from("excel"));
+      mockedImportService.generateTemplate.mockResolvedValue(Buffer.from("excel"));
 
       await controller.downloadTemplate(mockReq, mockRes);
 
@@ -485,7 +495,7 @@ describe("Import Controller Unit Tests", () => {
     it("should send buffer from service", async () => {
       mockReq = {};
       const buffer = Buffer.from("excel content");
-      mockedImportService.generateTemplate.mockReturnValue(buffer);
+      mockedImportService.generateTemplate.mockResolvedValue(buffer);
 
       await controller.downloadTemplate(mockReq, mockRes);
 
@@ -494,9 +504,9 @@ describe("Import Controller Unit Tests", () => {
 
     it("should handle service exceptions", async () => {
       mockReq = {};
-      mockedImportService.generateTemplate.mockImplementation(() => {
-        throw new Error("Generation failed");
-      });
+      mockedImportService.generateTemplate.mockRejectedValue(
+        new Error("Generation failed")
+      );
 
       await controller.downloadTemplate(mockReq, mockRes);
 

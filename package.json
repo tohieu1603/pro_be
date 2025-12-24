@@ -18,7 +18,8 @@
     "test:coverage": "jest --coverage",
     "test:unit": "jest --testPathPattern=services",
     "test:e2e": "jest --testPathPattern=e2e",
-    "test:import": "jest --testPathPattern=import"
+    "test:import": "jest --testPathPattern=import",
+    "seed": "ts-node src/seed.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jest": "^30.0.0",
