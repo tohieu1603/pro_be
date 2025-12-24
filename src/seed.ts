@@ -2,16 +2,12 @@ import "reflect-metadata";
 import { AppDataSource } from "./data-source";
 import { Brand } from "./entities/brand.entity";
 import { Category } from "./entities/category.entity";
-import { Product, ProductStatus } from "./entities/product.entity";
-import { ProductVariant, VariantStatus } from "./entities/product-variant.entity";
 import { Tag, TagType } from "./entities/tag.entity";
 import { Warehouse } from "./entities/warehouse.entity";
-import { Inventory } from "./entities/inventory.entity";
 import { Region } from "./entities/region.entity";
 import { User, UserRole } from "./entities/user.entity";
 import { VariantOptionType } from "./entities/variant-option-type.entity";
 import { VariantOptionValue } from "./entities/variant-option-value.entity";
-import { ProductVariantOption } from "./entities/product-variant-option.entity";
 import * as bcrypt from "bcryptjs";
 
 // Helper to generate slug
@@ -24,14 +20,6 @@ const slugify = (text: string): string => {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)+/g, "");
 };
-
-// Helper to generate random number in range
-const randomInt = (min: number, max: number) =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-
-// Helper to generate random price
-const randomPrice = (min: number, max: number) =>
-  Math.round((Math.random() * (max - min) + min) / 100000) * 100000;
 
 async function seed() {
   console.log("🌱 Starting database seeding...\n");
@@ -284,111 +272,6 @@ async function seed() {
 
   console.log(`✅ Created ${optionTypes.length} option types with values\n`);
 
-  // ========== PRODUCTS ==========
-  console.log("📦 Creating products...");
-  const productRepo = AppDataSource.getRepository(Product);
-  const variantRepo = AppDataSource.getRepository(ProductVariant);
-  const variantOptionRepo = AppDataSource.getRepository(ProductVariantOption);
-  const inventoryRepo = AppDataSource.getRepository(Inventory);
-
-  // Product templates
-  const productTemplates = [
-    { brand: 0, category: 4, nameTemplate: "Điều hòa Daikin Inverter", baseSKU: "DK-INV" },
-    { brand: 0, category: 4, nameTemplate: "Điều hòa Daikin Standard", baseSKU: "DK-STD" },
-    { brand: 1, category: 4, nameTemplate: "Điều hòa Panasonic CU/CS", baseSKU: "PN-CS" },
-    { brand: 1, category: 4, nameTemplate: "Điều hòa Panasonic Inverter Sky", baseSKU: "PN-SKY" },
-    { brand: 2, category: 4, nameTemplate: "Điều hòa LG Dual Inverter", baseSKU: "LG-DI" },
-    { brand: 2, category: 4, nameTemplate: "Điều hòa LG Dualcool", baseSKU: "LG-DC" },
-    { brand: 3, category: 4, nameTemplate: "Điều hòa Samsung WindFree", baseSKU: "SS-WF" },
-    { brand: 3, category: 4, nameTemplate: "Điều hòa Samsung Digital Inverter", baseSKU: "SS-DI" },
-    { brand: 4, category: 5, nameTemplate: "Điều hòa Mitsubishi âm trần", baseSKU: "MT-AT" },
-    { brand: 5, category: 4, nameTemplate: "Điều hòa Toshiba Inverter", baseSKU: "TB-INV" },
-    { brand: 6, category: 4, nameTemplate: "Điều hòa Gree Inverter", baseSKU: "GR-INV" },
-    { brand: 7, category: 4, nameTemplate: "Điều hòa Casper Inverter", baseSKU: "CP-INV" },
-    { brand: 8, category: 4, nameTemplate: "Điều hòa Midea Inverter", baseSKU: "MD-INV" },
-    { brand: 9, category: 4, nameTemplate: "Điều hòa Sharp Plasmacluster", baseSKU: "SH-PC" },
-    { brand: 1, category: 8, nameTemplate: "Máy lọc không khí Panasonic", baseSKU: "PN-AP" },
-    { brand: 3, category: 8, nameTemplate: "Máy lọc không khí Samsung", baseSKU: "SS-AP" },
-    { brand: 9, category: 8, nameTemplate: "Máy lọc không khí Sharp", baseSKU: "SH-AP" },
-    { brand: 8, category: 10, nameTemplate: "Quạt điều hòa Midea", baseSKU: "MD-QD" },
-    { brand: 1, category: 11, nameTemplate: "Quạt đứng Panasonic", baseSKU: "PN-QD" },
-  ];
-
-  const createdProducts: Product[] = [];
-  const createdVariants: ProductVariant[] = [];
-  let skuCounter = 1000;
-
-  for (const template of productTemplates) {
-    const tagIndices = [randomInt(0, 3), randomInt(4, 8)]; // Random 2 tags
-    const selectedTags = tagIndices.map((i) => tags[i]);
-
-    const product = await productRepo.save({
-      spk: `SPK-${String(skuCounter++).padStart(6, "0")}`,
-      name: template.nameTemplate,
-      slug: slugify(template.nameTemplate) + "-" + Date.now(),
-      description: `<p>${template.nameTemplate} với công nghệ tiên tiến, tiết kiệm điện năng, vận hành êm ái.</p><ul><li>Công nghệ Inverter tiết kiệm điện</li><li>Lọc bụi mịn PM2.5</li><li>Chế độ ngủ thông minh</li></ul>`,
-      shortDescription: `${template.nameTemplate} - Tiết kiệm điện, vận hành êm ái`,
-      brandId: brands[template.brand].id,
-      categoryId: allCategories[template.category].id,
-      basePrice: randomPrice(5000000, 15000000),
-      metaTitle: template.nameTemplate,
-      metaDescription: `Mua ${template.nameTemplate} chính hãng, giá tốt nhất`,
-      metaKeywords: [template.nameTemplate.split(" ")[2], "điều hòa", "inverter"],
-      status: ProductStatus.ACTIVE,
-      isFeatured: Math.random() > 0.7,
-      tags: selectedTags,
-    });
-
-    createdProducts.push(product);
-
-    // Create variants for each product (based on Công suất)
-    for (let i = 0; i < congSuatValues.length; i++) {
-      const congSuat = congSuatValues[i];
-      const priceMultiplier = 1 + i * 0.25; // Higher BTU = higher price
-      const variantPrice = Math.round(Number(product.basePrice) * priceMultiplier);
-
-      const variant = await variantRepo.save({
-        productId: product.id,
-        sku: `${template.baseSKU}-${congSuat.value}-${skuCounter++}`,
-        name: `${product.name} ${congSuat.displayValue}`,
-        price: variantPrice,
-        compareAtPrice: Math.round(variantPrice * 1.15),
-        costPrice: Math.round(variantPrice * 0.7),
-        stockQuantity: randomInt(10, 100),
-        lowStockThreshold: 5,
-        trackInventory: true,
-        allowBackorder: false,
-        weight: 30 + i * 5,
-        weightUnit: "kg",
-        isDefault: i === 0,
-        status: VariantStatus.ACTIVE,
-      });
-
-      createdVariants.push(variant);
-
-      // Create variant option (link to Công suất value)
-      await variantOptionRepo.save({
-        variantId: variant.id,
-        optionTypeId: optionTypes[0].id,
-        optionValueId: congSuat.id,
-      });
-
-      // Create inventory for each warehouse
-      for (const warehouse of warehouses) {
-        await inventoryRepo.save({
-          variantId: variant.id,
-          warehouseId: warehouse.id,
-          quantity: randomInt(5, 50),
-          reservedQuantity: randomInt(0, 5),
-        });
-      }
-    }
-  }
-
-  console.log(`✅ Created ${createdProducts.length} products`);
-  console.log(`✅ Created ${createdVariants.length} variants`);
-  console.log(`✅ Created inventory records for all variants\n`);
-
   // ========== SUMMARY ==========
   console.log("═══════════════════════════════════════");
   console.log("        SEED DATA SUMMARY              ");
@@ -400,8 +283,6 @@ async function seed() {
   console.log(`🏷️  Tags:        ${tags.length}`);
   console.log(`🏭 Warehouses:  ${warehouses.length}`);
   console.log(`⚙️  Option Types: ${optionTypes.length}`);
-  console.log(`📦 Products:    ${createdProducts.length}`);
-  console.log(`📦 Variants:    ${createdVariants.length}`);
   console.log("═══════════════════════════════════════");
   console.log("\n🎉 Database seeding completed!\n");
   console.log("Login credentials:");
