@@ -1,6 +1,6 @@
 import { In } from "typeorm";
 import { AppDataSource } from "../data-source";
-import { Product, ProductStatus } from "../entities";
+import { Product, ProductStatus, ProductMedia, MediaType } from "../entities";
 import { BaseService, PaginatedResult } from "./base.service";
 import { ProductQuery } from "../types/query.types";
 import { generateSlug, generateSPK } from "../utils/slug";
@@ -246,6 +246,66 @@ export class ProductService extends BaseService<Product> {
     const saved = await this.repository.save(product);
     await this.invalidateEntityCache(id);
     return saved;
+  }
+
+  async updateProductMedia(
+    productId: string,
+    mediaData: Array<{
+      id?: string;
+      url: string;
+      type?: string;
+      altText?: string;
+      displayOrder?: number;
+      isPrimary?: boolean;
+    }>
+  ): Promise<ProductMedia[]> {
+    const product = await this.findById(productId);
+    if (!product) {
+      throw new NotFoundError(this.entityName, productId);
+    }
+
+    const mediaRepository = AppDataSource.getRepository(ProductMedia);
+
+    // Get existing media for this product
+    const existingMedia = await mediaRepository.find({
+      where: { productId },
+    });
+
+    // Find media to delete (existing media not in new data)
+    const newMediaIds = mediaData.filter(m => m.id && !m.id.startsWith("temp-")).map(m => m.id);
+    const mediaToDelete = existingMedia.filter(m => !newMediaIds.includes(m.id));
+
+    // Delete removed media
+    if (mediaToDelete.length > 0) {
+      await mediaRepository.remove(mediaToDelete);
+    }
+
+    // Upsert media
+    const savedMedia: ProductMedia[] = [];
+    for (const item of mediaData) {
+      let media: ProductMedia;
+
+      if (item.id && !item.id.startsWith("temp-")) {
+        // Update existing
+        media = existingMedia.find(m => m.id === item.id) || new ProductMedia();
+        media.id = item.id;
+      } else {
+        // Create new
+        media = new ProductMedia();
+      }
+
+      media.productId = productId;
+      media.url = item.url;
+      media.type = (item.type as MediaType) || MediaType.IMAGE;
+      media.altText = item.altText || "";
+      media.displayOrder = item.displayOrder ?? savedMedia.length;
+      media.isPrimary = item.isPrimary ?? false;
+
+      savedMedia.push(await mediaRepository.save(media));
+    }
+
+    await this.invalidateEntityCache(productId);
+    return savedMedia;
   }
 }
 

@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import express from "express";
 import cors from "cors";
+import path from "path";
 import dotenv from "dotenv";
 import { AppDataSource } from "./data-source";
 import routes from "./routes";
@@ -54,6 +55,10 @@ app.use(regionMiddleware());
 app.get("/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Serve static files (uploaded images)
+const uploadDir = process.env.UPLOAD_DIR || "uploads";
+app.use(`/${uploadDir}`, express.static(path.join(process.cwd(), uploadDir)));
 
 // Sitemap & SEO routes (public, no /api prefix)
 app.use(sitemapRoutes);

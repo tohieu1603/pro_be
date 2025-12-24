@@ -306,7 +306,7 @@ export class ProductImportService {
   }
 
   private async importProduct(row: ProductRow, rowNum: number, result: ImportResult): Promise<void> {
-    if (!row.name || !row.sku_prefix || !row.base_price) {
+    if (!row.name || !row.sku_prefix || row.base_price === undefined || row.base_price === null) {
       throw new Error("Thiếu trường bắt buộc: name, sku_prefix, hoặc base_price");
     }
 
@@ -400,7 +400,7 @@ export class ProductImportService {
   }
 
   private async importVariant(row: VariantRow, rowNum: number, result: ImportResult): Promise<void> {
-    if (!row.product_sku_prefix || !row.sku || !row.price) {
+    if (!row.product_sku_prefix || !row.sku || row.price === undefined || row.price === null) {
       throw new Error("Thiếu trường bắt buộc: product_sku_prefix, sku, hoặc price");
     }
 

@@ -14,6 +14,7 @@ import articleCategoryRoutes from "./article-category.routes";
 import articleRoutes from "./article.routes";
 import regionRoutes from "./region.routes";
 import publicRoutes from "./public.routes";
+import uploadRoutes from "./upload.routes";
 
 const router = Router();
 
@@ -32,6 +33,7 @@ router.use("/article-categories", articleCategoryRoutes);
 router.use("/articles", articleRoutes);
 router.use("/regions", regionRoutes);
 router.use("/public", publicRoutes);
+router.use("/upload", uploadRoutes);
 
 // Health check
 router.get("/health", (_req, res) => {

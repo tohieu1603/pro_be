@@ -221,6 +221,26 @@ export class ProductController {
       return sendError(res, "Failed to fetch services", 500);
     }
   }
+
+  async updateMedia(req: Request, res: Response) {
+    try {
+      const { media } = req.body;
+      if (!Array.isArray(media)) {
+        return sendError(res, "Media must be an array", 400);
+      }
+
+      const savedMedia = await productService.updateProductMedia(
+        req.params.id,
+        media
+      );
+      return sendSuccess(res, savedMedia, "Product media updated successfully");
+    } catch (error: any) {
+      if (error.name === "NotFoundError") {
+        return sendError(res, error.message, 404);
+      }
+      return sendError(res, "Failed to update product media", 500);
+    }
+  }
 }
 
 export const productController = new ProductController();

@@ -17,5 +17,6 @@ router.delete("/:id", (req, res) => productController.delete(req, res));
 router.post("/:id/publish", (req, res) => productController.publish(req, res));
 router.post("/:id/unpublish", (req, res) => productController.unpublish(req, res));
 router.put("/:id/tags", (req, res) => productController.updateTags(req, res));
+router.put("/:id/media", (req, res) => productController.updateMedia(req, res));
 
 export default router;
