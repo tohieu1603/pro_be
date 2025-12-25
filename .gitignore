@@ -37,9 +37,11 @@ Thumbs.db
 # Test coverage
 coverage/
 
-# Uploads (if any)
-uploads/
-public/uploads/
+# Uploads - keep folder structure but ignore content
+uploads/**/*
+!uploads/
+!uploads/*/
+!uploads/**/.gitkeep
 
 # Temporary files
 tmp/
