@@ -11,3 +11,4 @@ export * from "./user.controller";
 export * from "./article-category.controller";
 export * from "./article.controller";
 export * from "./region.controller";
+export * from "./seo-settings.controller";

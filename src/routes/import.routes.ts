@@ -1,6 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import { importController } from "../controllers/import.controller";
+import { authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -24,6 +25,9 @@ const upload = multer({
     }
   },
 });
+
+// All routes require authentication
+router.use(authenticate);
 
 // POST /api/import/products - Import products from Excel
 router.post("/products", upload.single("file"), (req, res) =>

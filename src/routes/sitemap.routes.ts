@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { sitemapService } from "../services";
+import { sitemapService, seoSettingsService } from "../services";
 import { extractSubdomain } from "../utils/multi-tenant";
 
 const router = Router();
@@ -106,17 +106,21 @@ router.get("/sitemap-categories.xml", async (req: Request, res: Response) => {
   }
 });
 
-// robots.txt - region-aware
-router.get("/robots.txt", (req: Request, res: Response) => {
+// robots.txt - region-aware, uses DB settings
+router.get("/robots.txt", async (req: Request, res: Response) => {
   try {
     const host = req.get("host") || "";
     const subdomain = extractSubdomain(host);
     const baseUrl = `${req.protocol}://${host}`;
 
-    let robotsTxt = sitemapService.generateRobotsTxt(baseUrl);
+    // Get robots.txt from DB, fallback to default
+    let robotsTxt = await seoSettingsService.getRobotsTxt();
+
+    // Replace placeholder with actual base URL
+    robotsTxt = robotsTxt.replace(/\{\{BASE_URL\}\}/g, baseUrl);
 
     // If main domain, also include master sitemap
-    if (!subdomain) {
+    if (!subdomain && !robotsTxt.includes("sitemap-master.xml")) {
       robotsTxt = robotsTxt.replace(
         `Sitemap: ${baseUrl}/sitemap.xml`,
         `Sitemap: ${baseUrl}/sitemap.xml\nSitemap: ${baseUrl}/sitemap-master.xml`

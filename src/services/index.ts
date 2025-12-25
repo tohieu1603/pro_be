@@ -16,3 +16,4 @@ export * from "./article.service";
 export * from "./sitemap.service";
 export * from "./region.service";
 export * from "./product-region.service";
+export * from "./seo-settings.service";

@@ -18,6 +18,18 @@ import {
 } from "class-validator";
 import { Type, Transform } from "class-transformer";
 
+// Sanitize search input to prevent XSS and SQL injection patterns
+const sanitizeSearch = (value: string | undefined): string | undefined => {
+  if (!value || typeof value !== "string") return undefined;
+  return value
+    .replace(/[<>]/g, "") // Remove HTML tags
+    .replace(/['"]/g, "") // Remove quotes
+    .replace(/javascript:/gi, "") // Remove javascript protocol
+    .replace(/on\w+=/gi, "") // Remove event handlers
+    .replace(/[;\\]/g, "") // Remove semicolons and backslashes
+    .trim();
+};
+
 // Pagination
 export class PaginationQueryDto {
   @IsOptional()
@@ -36,6 +48,7 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsString()
   @MaxLength(200)
+  @Transform(({ value }) => sanitizeSearch(value))
   search?: string;
 
   @IsOptional()

@@ -29,3 +29,4 @@ export * from "./article.entity";
 export * from "./region.entity";
 export * from "./product-region.entity";
 export * from "./article-region.entity";
+export * from "./seo-settings.entity";
