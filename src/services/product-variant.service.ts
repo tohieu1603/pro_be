@@ -98,7 +98,34 @@ export class ProductVariantService extends BaseService<ProductVariant> {
       }
     }
 
-    const updated = await this.update(id, data);
+    // Strip relations — TypeORM repo.update() only handles scalar columns.
+    // Relations (product, media, options, inventories) go through their
+    // own endpoints.
+    const scalarPayload: Partial<ProductVariant> = {};
+    const allowed: (keyof ProductVariant)[] = [
+      "productId",
+      "sku",
+      "name",
+      "price",
+      "compareAtPrice",
+      "costPrice",
+      "stockQuantity",
+      "lowStockThreshold",
+      "trackInventory",
+      "allowBackorder",
+      "weight",
+      "weightUnit",
+      "barcode",
+      "isDefault",
+      "status",
+    ];
+    for (const key of allowed) {
+      if (key in data) {
+        (scalarPayload as any)[key] = (data as any)[key];
+      }
+    }
+
+    const updated = await this.update(id, scalarPayload);
     return updated!;
   }
 

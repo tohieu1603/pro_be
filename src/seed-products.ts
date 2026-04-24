@@ -14,6 +14,11 @@ import { ProductVariant, VariantStatus } from "./entities/product-variant.entity
 import { ProductMedia, MediaType } from "./entities/product-media.entity";
 import { ProductRegion } from "./entities/product-region.entity";
 
+// Pollinations.ai free AI image URL builder. Seeds are stable so each product
+// gets the same deterministic image across re-seeds (no API key needed).
+const img = (prompt: string, seed: number) =>
+  `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
+
 // slugify with Vietnamese diacritic removal
 const slugify = (text: string): string =>
   text
@@ -59,8 +64,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["ban-chay", "inverter", "tiet-kiem-dien", "1-chieu"],
     isFeatured: true,
     basePrice: 8990000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1631545308456-ca2f1ec4bf88?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Daikin FTKB wall-mounted split air conditioner indoor unit, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating composition, soft subtle shadow directly below, Apple iPhone page product photography style, front 3/4 view, dramatic studio lighting, photorealistic commercial render",
+      101,
+    ),
     variants: [
       {
         sku: "DK-FTKB25-WHT",
@@ -91,8 +98,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["moi", "inverter", "wifi", "1-chieu"],
     isFeatured: true,
     basePrice: 9490000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1599696848652-f0ff23bc911f?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Panasonic N9 Inverter Wifi split air conditioner indoor unit, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating composition, soft subtle shadow below, Apple iPhone page product photography style, front 3/4 view, dramatic studio lighting, photorealistic",
+      102,
+    ),
     variants: [
       {
         sku: "PN-N9-9K",
@@ -130,8 +139,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["inverter", "wifi", "2-chieu", "tiet-kiem-dien"],
     isFeatured: true,
     basePrice: 13990000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white LG V10 Dual Inverter split air conditioner indoor unit, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating composition, soft subtle shadow below, Apple product photography aesthetic, front 3/4 view, dramatic studio lighting, photorealistic commercial render",
+      103,
+    ),
     variants: [
       {
         sku: "LG-V10-9K-2C",
@@ -162,8 +173,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["inverter", "1-chieu", "tiet-kiem-dien"],
     isFeatured: false,
     basePrice: 12490000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1608686207856-001b95cf60ca?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Mitsubishi Electric MSZ-HR split air conditioner indoor unit, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating composition, soft subtle shadow below, Apple product photography aesthetic, Japanese precision engineering, front 3/4 view, photorealistic",
+      104,
+    ),
     variants: [
       {
         sku: "ME-HR25-9K",
@@ -186,8 +199,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["giam-gia", "freeship", "1-chieu"],
     isFeatured: false,
     basePrice: 5490000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Casper EC split air conditioner indoor unit, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating composition, soft subtle shadow below, Apple product photography aesthetic, simple clean design, front 3/4 view, photorealistic",
+      105,
+    ),
     variants: [
       {
         sku: "CP-EC09-9K",
@@ -218,8 +233,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["moi", "inverter", "wifi"],
     isFeatured: true,
     basePrice: 15990000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1565608438257-fac3c27beb36?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Samsung WindFree split air conditioner indoor unit with distinctive micro-hole front panel, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating composition, soft subtle shadow below, Apple product photography aesthetic, front 3/4 view, dramatic studio lighting, photorealistic",
+      106,
+    ),
     variants: [
       {
         sku: "SS-ATR09-9K",
@@ -250,8 +267,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["ban-chay", "ion-am", "loc-bui-min"],
     isFeatured: false,
     basePrice: 6490000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1617103996702-96ff29b1c467?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Sharp KC-G40 tower air purifier and humidifier, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating vertical composition, soft subtle shadow below, Apple product photography aesthetic, Japanese minimalist design, front view, photorealistic",
+      107,
+    ),
     variants: [
       {
         sku: "SH-KC-G40EV",
@@ -275,8 +294,10 @@ const productSeeds: ProductSeed[] = [
     tagSlugs: ["freeship", "tiet-kiem-dien"],
     isFeatured: false,
     basePrice: 3290000,
-    imageUrl:
-      "https://images.unsplash.com/photo-1527431016407-f63dc60c5a37?w=800",
+    imageUrl: img(
+      "Product-only isolated shot of white Panasonic FV-30 portable evaporative cooler tower fan with water tank, NOTHING else in frame, pure white seamless studio background, no scene no environment, centered floating vertical composition, soft subtle shadow below, Apple product photography aesthetic, front 3/4 view, photorealistic",
+      108,
+    ),
     variants: [
       {
         sku: "PN-FV30-WHT",

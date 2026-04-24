@@ -125,7 +125,33 @@ export class ProductService extends BaseService<Product> {
       }
     }
 
-    const updated = await this.update(id, data);
+    // Strip relations + non-scalar fields — TypeORM repo.update() can only
+    // touch scalar columns on the root entity. Relations (variants, media,
+    // tags, brand, category, …) have dedicated endpoints.
+    const scalarPayload: Partial<Product> = {};
+    const allowed: (keyof Product)[] = [
+      "spk",
+      "name",
+      "slug",
+      "description",
+      "shortDescription",
+      "brandId",
+      "categoryId",
+      "basePrice",
+      "metaTitle",
+      "metaDescription",
+      "metaKeywords",
+      "status",
+      "isFeatured",
+      "publishedAt",
+    ];
+    for (const key of allowed) {
+      if (key in data) {
+        (scalarPayload as any)[key] = (data as any)[key];
+      }
+    }
+
+    const updated = await this.update(id, scalarPayload);
     return updated!;
   }
 

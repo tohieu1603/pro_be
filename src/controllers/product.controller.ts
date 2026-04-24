@@ -105,6 +105,14 @@ export class ProductController {
       }
       return sendSuccess(res, product, "Product updated successfully");
     } catch (error: any) {
+      console.error("[product.update] FAIL:", {
+        id: req.params.id,
+        body: req.body,
+        message: error?.message,
+        code: error?.code,
+        detail: error?.detail,
+        stack: error?.stack?.split("\n").slice(0, 5).join("\n"),
+      });
       if (error.code === "23505") {
         return sendError(
           res,

@@ -94,15 +94,18 @@ export class ProductVariantController {
 
   async update(req: Request, res: Response) {
     try {
-      const variant = await productVariantService.update(
+      const variant = await productVariantService.updateVariant(
         req.params.id,
         req.body
       );
-      if (!variant) {
-        return sendError(res, "Variant not found", 404);
-      }
       return sendSuccess(res, variant, "Variant updated successfully");
     } catch (error: any) {
+      console.error("[variant.update] FAIL:", {
+        id: req.params.id,
+        message: error?.message,
+        code: error?.code,
+        detail: error?.detail,
+      });
       if (error.code === "23505") {
         return sendError(res, "Variant with this SKU already exists", 400);
       }
